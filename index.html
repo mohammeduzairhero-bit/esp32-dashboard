@@ -208,5 +208,80 @@ function toggleLed(led) {
 }
 </script>
 
+<script>
+const SpeechRecognition = 
+  window.SpeechRecognition || window.webkitSpeechRecognition;
+
+const recognition = new SpeechRecognition();
+recognition.lang = "en-US";
+recognition.continuous = false;
+
+function startVoice() {
+  recognition.start();
+}
+
+recognition.onresult = function(event) {
+  const command = event.results[0][0].transcript.toLowerCase();
+  console.log("Voice:", command);
+
+  // BEDROOM
+  if (command.includes("bedroom") && command.includes("on")) {
+    setRoom([1,2], 1);
+  }
+  if (command.includes("bedroom") && command.includes("off")) {
+    setRoom([1,2], 0);
+  }
+
+  // BATHROOM
+  if (command.includes("bathroom") && command.includes("on")) {
+    setRoom([3], 1);
+  }
+  if (command.includes("bathroom") && command.includes("off")) {
+    setRoom([3], 0);
+  }
+
+  // HALL
+  if (command.includes("hall") && command.includes("on")) {
+    setRoom([4,5], 1);
+  }
+  if (command.includes("hall") && command.includes("off")) {
+    setRoom([4,5], 0);
+  }
+
+  // KITCHEN
+  if (command.includes("kitchen") && command.includes("on")) {
+    setRoom([6], 1);
+  }
+  if (command.includes("kitchen") && command.includes("off")) {
+    setRoom([6], 0);
+  }
+};
+
+function setRoom(leds, state) {
+  leds.forEach(led => {
+    firebase.database().ref("led" + led).set(state);
+  });
+}
+</script>
+
+  
+  <button onclick="startVoice()" 
+style="
+position:fixed;
+bottom:20px;
+right:20px;
+background:#22c55e;
+border:none;
+border-radius:50%;
+width:60px;
+height:60px;
+font-size:26px;
+cursor:pointer;
+">
+🎤
+</button>
+
+
 </body>
 </html>
+
