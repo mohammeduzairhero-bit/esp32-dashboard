@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ESP32 Home Automation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      background: #121212;
+      color: white;
+    }
+    .card {
+      background: #1f1f1f;
+      padding: 20px;
+      margin: 15px;
+      border-radius: 12px;
+      display: inline-block;
+      width: 200px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .on { background: green; color: white; }
+    .off { background: red; color: white; }
+  </style>
+</head>
+
+<body>
+
+<h1>🏠 ESP32 Home Automation</h1>
+
+<div id="dashboard"></div>
+
+<script>
+  // 🔥 Firebase Configuration (REPLACE VALUES)
+  var firebaseConfig = {
+    apiKey: "AIzaSyD6rNf_NzDgBvmdCWfmyXAnlfLsHeM3whA",
+    databaseURL: "https://esp32-home-automationz-default-rtdb.asia-southeast1.firebasedatabase.app/"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  var database = firebase.database();
+
+  // Create buttons
+  for (let i = 1; i <= 6; i++) {
+    document.getElementById("dashboard").innerHTML += `
+      <div class="card">
+        <h3>LED ${i}</h3>
+        <button class="on" onclick="setLed(${i},1)">ON</button>
+        <button class="off" onclick="setLed(${i},0)">OFF</button>
+      </div>
+    `;
+  }
+
+  function setLed(num, state) {
+    database.ref("led" + num).set(state);
+  }
+</script>
+
+</body>
+</html>
