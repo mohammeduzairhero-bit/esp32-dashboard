@@ -1,71 +1,136 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>ESP32 Home Automation</title>
+  <meta charset="UTF-8">
+  <title>Smart Home Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  
-  <!-- Firebase SDK -->
+
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
   <style>
     body {
-      font-family: Arial;
-      text-align: center;
-      background: #121212;
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
       color: white;
+      text-align: center;
     }
-    .card {
-      background: #1f1f1f;
+
+    h1 { margin: 20px 0; }
+
+    .rooms, .controls {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin: 20px;
+    }
+
+    .room, .card {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
       padding: 20px;
-      margin: 15px;
-      border-radius: 12px;
-      display: inline-block;
-      width: 200px;
+      width: 180px;
+      cursor: pointer;
+      transition: transform 0.3s, background 0.3s;
     }
+
+    .room:hover, .card:hover {
+      transform: scale(1.08);
+      background: rgba(255,255,255,0.2);
+    }
+
     button {
-      padding: 10px 20px;
+      padding: 10px 18px;
       margin: 5px;
-      font-size: 16px;
       border: none;
       border-radius: 8px;
+      font-size: 15px;
       cursor: pointer;
+      transition: transform 0.2s;
     }
-    .on { background: green; color: white; }
-    .off { background: red; color: white; }
+
+    button:hover { transform: scale(1.1); }
+
+    .on { background: #00c853; color: white; }
+    .off { background: #d50000; color: white; }
+
+    .hidden { display: none; }
+
+    .back {
+      margin-top: 20px;
+      background: #1565c0;
+      color: white;
+    }
   </style>
 </head>
 
 <body>
 
-<h1>🏠 ESP32 Home Automation</h1>
+<h1>🏠 Smart Home Control</h1>
 
-<div id="dashboard"></div>
+<!-- ROOM SELECTION -->
+<div id="roomPage" class="rooms">
+  <div class="room" onclick="openRoom('bedroom')">🛏 Bedroom</div>
+  <div class="room" onclick="openRoom('bathroom')">🚿 Bathroom</div>
+  <div class="room" onclick="openRoom('hall')">🛋 Hall</div>
+  <div class="room" onclick="openRoom('kitchen')">🍳 Kitchen</div>
+</div>
+
+<!-- ROOM CONTROLS -->
+<div id="controlPage" class="hidden">
+  <h2 id="roomTitle"></h2>
+  <div id="controls" class="controls"></div>
+  <button class="back" onclick="goBack()">⬅ Back</button>
+</div>
 
 <script>
-  // 🔥 Firebase Configuration (REPLACE VALUES)
+  /* ===== FIREBASE CONFIG ===== */
   var firebaseConfig = {
-    apiKey: "AIzaSyD6rNf_NzDgBvmdCWfmyXAnlfLsHeM3whA",
+    apiKey: "YOUR_API_KEY",
     databaseURL: "https://esp32-home-automationz-default-rtdb.asia-southeast1.firebasedatabase.app/"
   };
-
-  // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
-  var database = firebase.database();
+  var db = firebase.database();
 
-  // Create buttons
-  for (let i = 1; i <= 6; i++) {
-    document.getElementById("dashboard").innerHTML += `
-      <div class="card">
-        <h3>LED ${i}</h3>
-        <button class="on" onclick="setLed(${i},1)">ON</button>
-        <button class="off" onclick="setLed(${i},0)">OFF</button>
-      </div>
-    `;
+  /* ===== ROOM → LED MAP ===== */
+  const roomMap = {
+    bedroom: [1, 2],
+    bathroom: [3],
+    hall: [4, 5],
+    kitchen: [6]
+  };
+
+  function openRoom(room) {
+    document.getElementById("roomPage").classList.add("hidden");
+    document.getElementById("controlPage").classList.remove("hidden");
+    document.getElementById("roomTitle").innerText =
+      room.charAt(0).toUpperCase() + room.slice(1);
+
+    const container = document.getElementById("controls");
+    container.innerHTML = "";
+
+    roomMap[room].forEach(led => {
+      container.innerHTML += `
+        <div class="card">
+          <h3>Light ${led}</h3>
+          <button class="on" onclick="setLed(${led},1)">ON</button>
+          <button class="off" onclick="setLed(${led},0)">OFF</button>
+        </div>
+      `;
+    });
+  }
+
+  function goBack() {
+    document.getElementById("controlPage").classList.add("hidden");
+    document.getElementById("roomPage").classList.remove("hidden");
   }
 
   function setLed(num, state) {
-    database.ref("led" + num).set(state);
+    db.ref("led" + num).set(state);
   }
 </script>
 
