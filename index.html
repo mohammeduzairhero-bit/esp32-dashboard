@@ -1,139 +1,212 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Smart Home Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>Smart Home</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-      color: white;
-      text-align: center;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: #0f172a;
+  color: white;
+}
 
-    h1 { margin: 20px 0; }
+/* APP HEADER */
+header {
+  padding: 20px;
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
+  background: #020617;
+}
 
-    .rooms, .controls {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 15px;
-      margin: 20px;
-    }
+/* ROOM GRID */
+.rooms {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  padding: 20px;
+}
 
-    .room, .card {
-      background: rgba(255,255,255,0.1);
-      backdrop-filter: blur(10px);
-      border-radius: 15px;
-      padding: 20px;
-      width: 180px;
-      cursor: pointer;
-      transition: transform 0.3s, background 0.3s;
-    }
+.room {
+  background: #020617;
+  padding: 25px;
+  border-radius: 18px;
+  text-align: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: 0.3s;
+}
 
-    .room:hover, .card:hover {
-      transform: scale(1.08);
-      background: rgba(255,255,255,0.2);
-    }
+.room:hover {
+  background: #1e293b;
+  transform: scale(1.05);
+}
 
-    button {
-      padding: 10px 18px;
-      margin: 5px;
-      border: none;
-      border-radius: 8px;
-      font-size: 15px;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
+/* DEVICE PAGE */
+.devices {
+  padding: 20px;
+}
 
-    button:hover { transform: scale(1.1); }
+/* LIGHT CARD */
+.card {
+  background: #020617;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-    .on { background: #00c853; color: white; }
-    .off { background: #d50000; color: white; }
+/* BULB ICON */
+.bulb {
+  font-size: 42px;
+  color: #374151;
+  transition: 0.4s;
+}
 
-    .hidden { display: none; }
+.bulb.on {
+  color: #ffeb3b;
+  text-shadow: 0 0 20px #ffeb3b;
+}
 
-    .back {
-      margin-top: 20px;
-      background: #1565c0;
-      color: white;
-    }
-  </style>
+/* TOGGLE SWITCH */
+.switch {
+  position: relative;
+  width: 55px;
+  height: 28px;
+}
+
+.switch input {
+  display: none;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  background: #374151;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.slider::before {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  background: white;
+  border-radius: 50%;
+  top: 3px;
+  left: 4px;
+  transition: 0.3s;
+}
+
+input:checked + .slider {
+  background: #22c55e;
+}
+
+input:checked + .slider::before {
+  transform: translateX(26px);
+}
+
+.back {
+  background: #2563eb;
+  border: none;
+  color: white;
+  padding: 12px;
+  border-radius: 12px;
+  width: 100%;
+  font-size: 16px;
+}
+</style>
 </head>
 
 <body>
 
-<h1>🏠 Smart Home Control</h1>
+<header>🏠 Smart Home</header>
 
-<!-- ROOM SELECTION -->
+<!-- ROOMS -->
 <div id="roomPage" class="rooms">
-  <div class="room" onclick="openRoom('bedroom')">🛏 Bedroom</div>
-  <div class="room" onclick="openRoom('bathroom')">🚿 Bathroom</div>
-  <div class="room" onclick="openRoom('hall')">🛋 Hall</div>
-  <div class="room" onclick="openRoom('kitchen')">🍳 Kitchen</div>
+  <div class="room" onclick="openRoom('Bedroom')">🛏 Bedroom</div>
+  <div class="room" onclick="openRoom('Bathroom')">🚿 Bathroom</div>
+  <div class="room" onclick="openRoom('Hall')">🛋 Hall</div>
+  <div class="room" onclick="openRoom('Kitchen')">🍳 Kitchen</div>
 </div>
 
-<!-- ROOM CONTROLS -->
-<div id="controlPage" class="hidden">
+<!-- DEVICES -->
+<div id="devicePage" class="devices" style="display:none;">
   <h2 id="roomTitle"></h2>
-  <div id="controls" class="controls"></div>
+  <div id="deviceList"></div>
   <button class="back" onclick="goBack()">⬅ Back</button>
 </div>
 
 <script>
-  /* ===== FIREBASE CONFIG ===== */
-  var firebaseConfig = {
-    apiKey: "AIzaSyD6rNf_NzDgBvmdCWfmyXAnlfLsHeM3whA",
-    databaseURL: "https://esp32-home-automationz-default-rtdb.asia-southeast1.firebasedatabase.app/"
-  };
-  firebase.initializeApp(firebaseConfig);
-  var db = firebase.database();
+/* ===== FIREBASE ===== */
+firebase.initializeApp({
+  apiKey: "YOUR_API_KEY",
+  databaseURL: "https://esp32-home-automationz-default-rtdb.asia-southeast1.firebasedatabase.app/"
+});
 
-  /* ===== ROOM → LED MAP ===== */
-  const roomMap = {
-    bedroom: [1, 2],
-    bathroom: [3],
-    hall: [4, 5],
-    kitchen: [6]
-  };
+const db = firebase.database();
 
-  function openRoom(room) {
-    document.getElementById("roomPage").classList.add("hidden");
-    document.getElementById("controlPage").classList.remove("hidden");
-    document.getElementById("roomTitle").innerText =
-      room.charAt(0).toUpperCase() + room.slice(1);
+/* ROOM → LED MAP */
+const roomLEDs = {
+  Bedroom: [1,2],
+  Bathroom: [3],
+  Hall: [4,5],
+  Kitchen: [6]
+};
 
-    const container = document.getElementById("controls");
-    container.innerHTML = "";
+function openRoom(room) {
+  document.getElementById("roomPage").style.display = "none";
+  document.getElementById("devicePage").style.display = "block";
+  document.getElementById("roomTitle").innerText = room;
 
-    roomMap[room].forEach(led => {
-      container.innerHTML += `
-        <div class="card">
-          <h3>Light ${led}</h3>
-          <button class="on" onclick="setLed(${led},1)">ON</button>
-          <button class="off" onclick="setLed(${led},0)">OFF</button>
+  const list = document.getElementById("deviceList");
+  list.innerHTML = "";
+
+  roomLEDs[room].forEach(led => {
+    const id = `led${led}`;
+
+    list.innerHTML += `
+      <div class="card">
+        <div>
+          <div>Light ${led}</div>
+          <div class="bulb" id="bulb${led}">💡</div>
         </div>
-      `;
+        <label class="switch">
+          <input type="checkbox" id="toggle${led}" onchange="toggleLed(${led})">
+          <span class="slider"></span>
+        </label>
+      </div>
+    `;
+
+    /* LIVE STATUS */
+    db.ref(id).on("value", snap => {
+      const state = snap.val();
+      document.getElementById(`toggle${led}`).checked = state === 1;
+      document.getElementById(`bulb${led}`).classList.toggle("on", state === 1);
     });
-  }
+  });
+}
 
-  function goBack() {
-    document.getElementById("controlPage").classList.add("hidden");
-    document.getElementById("roomPage").classList.remove("hidden");
-  }
+function goBack() {
+  document.getElementById("devicePage").style.display = "none";
+  document.getElementById("roomPage").style.display = "grid";
+}
 
-  function setLed(num, state) {
-    db.ref("led" + num).set(state);
-  }
+function toggleLed(led) {
+  const state = document.getElementById(`toggle${led}`).checked ? 1 : 0;
+  db.ref("led" + led).set(state);
+}
 </script>
 
 </body>
 </html>
-
