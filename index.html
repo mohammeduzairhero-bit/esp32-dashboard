@@ -13,20 +13,18 @@
 body {
   margin: 0;
   font-family: 'Segoe UI', sans-serif;
-  background: #0f172a;
+  background: linear-gradient(180deg,#020617,#0f172a);
   color: white;
 }
 
-/* APP HEADER */
 header {
-  padding: 20px;
+  padding: 18px;
   font-size: 22px;
-  font-weight: bold;
   text-align: center;
   background: #020617;
 }
 
-/* ROOM GRID */
+/* HOUSE GRID */
 .rooms {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -35,17 +33,32 @@ header {
 }
 
 .room {
+  position: relative;
   background: #020617;
-  padding: 25px;
-  border-radius: 18px;
+  padding: 35px 15px;
+  border-radius: 20px;
   text-align: center;
   font-size: 18px;
   cursor: pointer;
-  transition: 0.3s;
+  overflow: hidden;
+  transition: 0.4s;
+}
+
+/* ROOM LIGHT EFFECT */
+.room::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255,235,59,0.4), transparent 60%);
+  opacity: 0;
+  transition: 0.4s;
+}
+
+.room.on::after {
+  opacity: 1;
 }
 
 .room:hover {
-  background: #1e293b;
   transform: scale(1.05);
 }
 
@@ -65,7 +78,7 @@ header {
   align-items: center;
 }
 
-/* BULB ICON */
+/* BULB */
 .bulb {
   font-size: 42px;
   color: #374151;
@@ -74,56 +87,54 @@ header {
 
 .bulb.on {
   color: #ffeb3b;
-  text-shadow: 0 0 20px #ffeb3b;
+  text-shadow: 0 0 25px #ffeb3b;
+  animation: glow 1.5s infinite alternate;
 }
 
-/* TOGGLE SWITCH */
+@keyframes glow {
+  from { text-shadow: 0 0 15px #ffeb3b; }
+  to   { text-shadow: 0 0 35px #ffeb3b; }
+}
+
+/* SWITCH */
 .switch {
   position: relative;
   width: 55px;
   height: 28px;
 }
-
-.switch input {
-  display: none;
-}
+.switch input { display:none; }
 
 .slider {
   position: absolute;
   inset: 0;
   background: #374151;
   border-radius: 20px;
-  cursor: pointer;
 }
-
 .slider::before {
-  content: "";
-  position: absolute;
-  width: 22px;
-  height: 22px;
-  background: white;
-  border-radius: 50%;
-  top: 3px;
-  left: 4px;
-  transition: 0.3s;
+  content:"";
+  position:absolute;
+  width:22px;
+  height:22px;
+  background:white;
+  border-radius:50%;
+  top:3px;
+  left:4px;
+  transition:.3s;
 }
-
 input:checked + .slider {
-  background: #22c55e;
+  background:#22c55e;
 }
-
 input:checked + .slider::before {
   transform: translateX(26px);
 }
 
 .back {
-  background: #2563eb;
-  border: none;
-  color: white;
-  padding: 12px;
-  border-radius: 12px;
-  width: 100%;
-  font-size: 16px;
+  background:#2563eb;
+  border:none;
+  color:white;
+  padding:12px;
+  border-radius:12px;
+  width:100%;
 }
 </style>
 </head>
@@ -134,10 +145,12 @@ input:checked + .slider::before {
 
 <!-- ROOMS -->
 <div id="roomPage" class="rooms">
-  <div class="room" onclick="openRoom('Bedroom')">🛏 Bedroom</div>
-  <div class="room" onclick="openRoom('Bathroom')">🚿 Bathroom</div>
-  <div class="room" onclick="openRoom('Hall')">🛋 Hall</div>
-  <div class="room" onclick="openRoom('Kitchen')">🍳 Kitchen</div>
+  <div class="room" id="roomBedroom" onclick="openRoom('Bedroom')">🛏 Bedroom</div>
+  <div class="room" id="roomBathroom" onclick="openRoom('Bathroom')">🚿 Bathroom</div>
+  <div class="room" id="roomHall" onclick="openRoom('Hall')">🛋 Hall</div>
+  <div class="room" id="roomDining" onclick="openRoom('Dining')">🍽 Dining</div>
+  <div class="room" id="roomKitchen" onclick="openRoom('Kitchen')">🍳 Kitchen</div>
+  <div class="room" id="roomParking" onclick="openRoom('Parking')">🚗 Parking</div>
 </div>
 
 <!-- DEVICES -->
@@ -148,7 +161,6 @@ input:checked + .slider::before {
 </div>
 
 <script>
-/* ===== FIREBASE ===== */
 firebase.initializeApp({
   apiKey: "AIzaSyD6rNf_NzDgBvmdCWfmyXAnlfLsHeM3whA",
   databaseURL: "https://esp32-home-automationz-default-rtdb.asia-southeast1.firebasedatabase.app/"
@@ -158,131 +170,61 @@ const db = firebase.database();
 
 /* ROOM → LED MAP */
 const roomLEDs = {
-  Bedroom: [1,2],
-  Bathroom: [3],
-  Hall: [4,5],
-  Kitchen: [6]
+  Bedroom:[1,2],
+  Bathroom:[3],
+  Hall:[4],
+  Dining:[5],
+  Kitchen:[6],
+  Parking:[7]
 };
 
-function openRoom(room) {
-  document.getElementById("roomPage").style.display = "none";
-  document.getElementById("devicePage").style.display = "block";
-  document.getElementById("roomTitle").innerText = room;
+/* ROOM LIGHT STATUS */
+Object.keys(roomLEDs).forEach(room=>{
+  roomLEDs[room].forEach(led=>{
+    db.ref("led"+led).on("value",snap=>{
+      if(snap.val()===1)
+        document.getElementById("room"+room).classList.add("on");
+      else
+        document.getElementById("room"+room).classList.remove("on");
+    });
+  });
+});
 
-  const list = document.getElementById("deviceList");
-  list.innerHTML = "";
+function openRoom(room){
+  roomPage.style.display="none";
+  devicePage.style.display="block";
+  roomTitle.innerText=room;
+  deviceList.innerHTML="";
 
-  roomLEDs[room].forEach(led => {
-    const id = `led${led}`;
-
-    list.innerHTML += `
-      <div class="card">
-        <div>
-          <div>Light ${led}</div>
-          <div class="bulb" id="bulb${led}">💡</div>
-        </div>
-        <label class="switch">
-          <input type="checkbox" id="toggle${led}" onchange="toggleLed(${led})">
-          <span class="slider"></span>
-        </label>
+  roomLEDs[room].forEach(led=>{
+    deviceList.innerHTML+=`
+    <div class="card">
+      <div>
+        <div>Light ${led}</div>
+        <div class="bulb" id="bulb${led}">💡</div>
       </div>
-    `;
-
-    /* LIVE STATUS */
-    db.ref(id).on("value", snap => {
-      const state = snap.val();
-      document.getElementById(`toggle${led}`).checked = state === 1;
-      document.getElementById(`bulb${led}`).classList.toggle("on", state === 1);
+      <label class="switch">
+        <input type="checkbox" id="toggle${led}" onchange="toggleLed(${led})">
+        <span class="slider"></span>
+      </label>
+    </div>`;
+    
+    db.ref("led"+led).on("value",snap=>{
+      toggle${led}.checked = snap.val()==1;
+      bulb${led}.classList.toggle("on",snap.val()==1);
     });
   });
 }
 
-function goBack() {
-  document.getElementById("devicePage").style.display = "none";
-  document.getElementById("roomPage").style.display = "grid";
+function goBack(){
+  devicePage.style.display="none";
+  roomPage.style.display="grid";
 }
 
-function toggleLed(led) {
-  const state = document.getElementById(`toggle${led}`).checked ? 1 : 0;
-  db.ref("led" + led).set(state);
-}
-</script>
-
-<script>
-const SpeechRecognition = 
-  window.SpeechRecognition || window.webkitSpeechRecognition;
-
-const recognition = new SpeechRecognition();
-recognition.lang = "en-US";
-recognition.continuous = false;
-
-function startVoice() {
-  recognition.start();
-}
-
-recognition.onresult = function(event) {
-  const command = event.results[0][0].transcript.toLowerCase();
-  console.log("Voice:", command);
-
-  // BEDROOM
-  if (command.includes("bedroom") && command.includes("on")) {
-    setRoom([1,2], 1);
-  }
-  if (command.includes("bedroom") && command.includes("off")) {
-    setRoom([1,2], 0);
-  }
-
-  // BATHROOM
-  if (command.includes("bathroom") && command.includes("on")) {
-    setRoom([3], 1);
-  }
-  if (command.includes("bathroom") && command.includes("off")) {
-    setRoom([3], 0);
-  }
-
-  // HALL
-  if (command.includes("hall") && command.includes("on")) {
-    setRoom([4,5], 1);
-  }
-  if (command.includes("hall") && command.includes("off")) {
-    setRoom([4,5], 0);
-  }
-
-  // KITCHEN
-  if (command.includes("kitchen") && command.includes("on")) {
-    setRoom([6], 1);
-  }
-  if (command.includes("kitchen") && command.includes("off")) {
-    setRoom([6], 0);
-  }
-};
-
-function setRoom(leds, state) {
-  leds.forEach(led => {
-    firebase.database().ref("led" + led).set(state);
-  });
+function toggleLed(led){
+  db.ref("led"+led).set(toggle${led}.checked?1:0);
 }
 </script>
-
-  
-  <button onclick="startVoice()" 
-style="
-position:fixed;
-bottom:20px;
-right:20px;
-background:#22c55e;
-border:none;
-border-radius:50%;
-width:60px;
-height:60px;
-font-size:26px;
-cursor:pointer;
-">
-🎤
-</button>
-
 
 </body>
 </html>
-
-
