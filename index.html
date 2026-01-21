@@ -235,7 +235,70 @@ function toggleLed(led){
   db.ref("led"+led).set(toggle${led}.checked?1:0);
 }
 </script>
+  <script>
+/* ===== FIREBASE ===== */
+firebase.initializeApp({
+  apiKey: "AIzaSyD6rNf_NzDgBvmdCWfmyXAnlfLsHeM3whA",
+  databaseURL: "https://esp32-home-automationz-default-rtdb.asia-southeast1.firebasedatabase.app/"
+});
+const db = firebase.database();
+
+/* ROOM → LED MAP */
+const roomLEDs = {
+  Bedroom: [1,2],
+  Bathroom: [3],
+  Hall: [4],
+  CarParking: [5],
+  Dining: [6],
+  Kitchen: [7]
+};
+
+/* ===== OPEN ROOM ===== */
+function openRoom(room) {
+  document.getElementById("roomPage").style.display = "none";
+  document.getElementById("devicePage").style.display = "block";
+  document.getElementById("roomTitle").innerText = room;
+
+  const list = document.getElementById("deviceList");
+  list.innerHTML = "";
+
+  roomLEDs[room].forEach(led => {
+    list.innerHTML += `
+      <div class="card">
+        <div>
+          <div>Light ${led}</div>
+          <div class="bulb" id="bulb${led}">💡</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle${led}" onchange="toggleLed(${led})">
+          <span class="slider"></span>
+        </label>
+      </div>
+    `;
+
+    db.ref("led"+led).on("value", snap => {
+      const state = snap.val();
+      document.getElementById("toggle"+led).checked = state === 1;
+      document.getElementById("bulb"+led).classList.toggle("on", state === 1);
+    });
+  });
+}
+
+/* ===== BACK BUTTON ===== */
+function goBack() {
+  document.getElementById("devicePage").style.display = "none";
+  document.getElementById("roomPage").style.display = "grid";
+}
+
+/* ===== TOGGLE LED ===== */
+function toggleLed(led) {
+  const state = document.getElementById("toggle"+led).checked ? 1 : 0;
+  db.ref("led"+led).set(state);
+}
+</script>
+
 
 </body>
 </html>
+
 
