@@ -179,16 +179,25 @@ const roomLEDs = {
 };
 
 /* ROOM LIGHT STATUS */
-Object.keys(roomLEDs).forEach(room=>{
-  roomLEDs[room].forEach(led=>{
-    db.ref("led"+led).on("value",snap=>{
-      if(snap.val()===1)
-        document.getElementById("room"+room).classList.add("on");
-      else
+Object.keys(roomLEDs).forEach(room => {
+  roomLEDs[room].forEach(led => {
+    db.ref("led"+led).on("value", () => {
+      let anyOn = false;
+      roomLEDs[room].forEach(l => {
+        db.ref("led"+l).once("value", s => {
+          if (s.val() === 1) {
+            anyOn = true;
+            document.getElementById("room"+room).classList.add("on");
+          }
+        });
+      });
+      if (!anyOn) {
         document.getElementById("room"+room).classList.remove("on");
+      }
     });
   });
 });
+
 
 function openRoom(room){
   roomPage.style.display="none";
@@ -210,8 +219,9 @@ function openRoom(room){
     </div>`;
     
     db.ref("led"+led).on("value",snap=>{
-      toggle${led}.checked = snap.val()==1;
-      bulb${led}.classList.toggle("on",snap.val()==1);
+      document.getElementById("toggle"+led).checked = snap.val()==1;
+document.getElementById("bulb"+led).classList.toggle("on", snap.val()==1);
+
     });
   });
 }
@@ -228,3 +238,4 @@ function toggleLed(led){
 
 </body>
 </html>
+
