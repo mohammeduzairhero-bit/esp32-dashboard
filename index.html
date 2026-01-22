@@ -5,7 +5,7 @@
 <title>Smart Home</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- Firebase -->
+<!-- Firebase v8 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
@@ -107,72 +107,59 @@ input:checked + .slider::before{transform:translateX(26px);}
 
 <!-- ROOMS -->
 <div id="roomPage" class="rooms">
-  <div class="room" id="roomBedroom" data-room="Bedroom">🛏 Bedroom</div>
-  <div class="room" id="roomBathroom" data-room="Bathroom">🚿 Bathroom</div>
-  <div class="room" id="roomHall" data-room="Hall">🛋 Hall</div>
-  <div class="room" id="roomDining" data-room="Dining">🍽 Dining</div>
-  <div class="room" id="roomKitchen" data-room="Kitchen">🍳 Kitchen</div>
-  <div class="room" id="roomParking" data-room="Parking">🚗 Parking</div>
+  <div class="room" id="roomBedroom" onclick="openRoom('Bedroom')">🛏 Bedroom</div>
+  <div class="room" id="roomBathroom" onclick="openRoom('Bathroom')">🚿 Bathroom</div>
+  <div class="room" id="roomHall" onclick="openRoom('Hall')">🛋 Hall</div>
+  <div class="room" id="roomDining" onclick="openRoom('Dining')">🍽 Dining</div>
+  <div class="room" id="roomKitchen" onclick="openRoom('Kitchen')">🍳 Kitchen</div>
+  <div class="room" id="roomParking" onclick="openRoom('Parking')">🚗 Parking</div>
 </div>
 
 <!-- DEVICES -->
 <div id="devicePage" class="devices" style="display:none;">
   <h2 id="roomTitle"></h2>
   <div id="deviceList"></div>
-  <button class="back" id="backBtn">⬅ Back</button>
+  <button class="back" onclick="goBack()">⬅ Back</button>
 </div>
 
 <script>
 /* ===== FIREBASE INIT ===== */
 firebase.initializeApp({
-  apiKey:"AIzaSyD6rNf_NzDgBvmdCWfmyXAnlfLsHeM3whA",
-  databaseURL:"https://esp32-home-automationz-default-rtdb.asia-southeast1.firebasedatabase.app/"
+  apiKey: "AIzaSyD6rNf_NzDgBvmdCWfmyXAnlfLsHeM3whA",
+  databaseURL: "https://esp32-home-automationz-default-rtdb.asia-southeast1.firebasedatabase.app/"
 });
 const db = firebase.database();
 
 /* ROOM → LED MAP */
 const roomLEDs = {
-  Bedroom:[1,2],
-  Bathroom:[3],
-  Hall:[4],
-  Dining:[5],
-  Kitchen:[6],
-  Parking:[7]
+  Bedroom: [1,2],
+  Bathroom: [3],
+  Hall: [4],
+  Dining: [5],
+  Kitchen: [6],
+  Parking: [7]
 };
 
-/* ROOM CLICK HANDLERS */
-document.querySelectorAll(".room").forEach(roomDiv=>{
-  roomDiv.addEventListener("click",()=>{
-    openRoom(roomDiv.dataset.room);
-  });
-});
-
-/* ROOM GLOW STATUS */
+/* ===== ROOM GLOW (SAFE VERSION) ===== */
 Object.keys(roomLEDs).forEach(room=>{
   roomLEDs[room].forEach(led=>{
     db.ref("led"+led).on("value",()=>{
-      let on=false;
-      roomLEDs[room].forEach(l=>{
-        db.ref("led"+l).once("value",s=>{
-          if(s.val()==1){
-            on=true;
-            document.getElementById("room"+room).classList.add("on");
-          }
-        });
+      Promise.all(
+        roomLEDs[room].map(l=>db.ref("led"+l).once("value"))
+      ).then(snaps=>{
+        const anyOn = snaps.some(s=>s.val()==1);
+        document.getElementById("room"+room)
+          .classList.toggle("on", anyOn);
       });
-      if(!on){
-        document.getElementById("room"+room).classList.remove("on");
-      }
     });
   });
 });
 
-/* OPEN ROOM */
+/* ===== OPEN ROOM ===== */
 function openRoom(room){
-  document.getElementById("roomPage").style.display="none";
-  document.getElementById("devicePage").style.display="block";
-  document.getElementById("roomTitle").innerText=room;
-  const deviceList=document.getElementById("deviceList");
+  roomPage.style.display="none";
+  devicePage.style.display="block";
+  roomTitle.innerText=room;
   deviceList.innerHTML="";
 
   roomLEDs[room].forEach(led=>{
@@ -189,25 +176,30 @@ function openRoom(room){
       </div>
     `;
 
-    const toggle=document.getElementById("toggle"+led);
+    const toggle = document.getElementById("toggle"+led);
+    const bulb  = document.getElementById("bulb"+led);
 
+    /* USER ACTION → FIREBASE */
     toggle.addEventListener("change",()=>{
-      db.ref("led"+led).set(toggle.checked?1:0);
+      db.ref("led"+led).set(toggle.checked ? 1 : 0);
     });
 
+    /* FIREBASE → UI */
     db.ref("led"+led).on("value",snap=>{
-      const state=snap.val();
-      toggle.checked=state==1;
-      document.getElementById("bulb"+led).classList.toggle("on",state==1);
+      const state = snap.val()==1;
+      if(toggle.checked !== state){
+        toggle.checked = state;
+      }
+      bulb.classList.toggle("on", state);
     });
   });
 }
 
-/* BACK */
-document.getElementById("backBtn").addEventListener("click",()=>{
-  document.getElementById("devicePage").style.display="none";
-  document.getElementById("roomPage").style.display="grid";
-});
+/* ===== BACK ===== */
+function goBack(){
+  devicePage.style.display="none";
+  roomPage.style.display="grid";
+}
 </script>
 
 </body>
