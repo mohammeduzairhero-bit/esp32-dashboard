@@ -9,10 +9,15 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <style>
+:root{
+  --bg:#0f172a;
+  --card:#020617;
+  --accent:#ffeb3b;
+}
 body{
   margin:0;
-  font-family:Segoe UI;
-  background:#0f172a;
+  font-family:'Segoe UI',sans-serif;
+  background:linear-gradient(180deg,#020617,#0f172a);
   color:white;
 }
 header{
@@ -21,6 +26,8 @@ header{
   text-align:center;
   font-size:22px;
 }
+
+/* ROOMS */
 .rooms{
   display:grid;
   grid-template-columns:repeat(2,1fr);
@@ -28,43 +35,81 @@ header{
   padding:20px;
 }
 .room{
-  background:#020617;
-  padding:30px;
-  border-radius:20px;
+  position:relative;
+  background:var(--card);
+  padding:35px;
+  border-radius:22px;
   text-align:center;
   cursor:pointer;
+  transition:.4s;
+  overflow:hidden;
 }
-.room:hover{background:#1e293b;}
-.devices{padding:20px;}
+.room:hover{ transform:scale(1.05); }
+
+.room::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:radial-gradient(circle,rgba(255,235,59,.4),transparent 60%);
+  opacity:0;
+  transition:.4s;
+}
+.room.on::after{ opacity:1; }
+
+/* DEVICE PAGE */
+.devices{ padding:20px; }
 .card{
-  background:#020617;
+  background:var(--card);
+  border-radius:22px;
   padding:20px;
-  border-radius:20px;
   margin-bottom:15px;
   display:flex;
   justify-content:space-between;
   align-items:center;
+  animation:fadeIn .5s ease;
 }
+@keyframes fadeIn{
+  from{opacity:0; transform:translateY(10px);}
+  to{opacity:1; transform:none;}
+}
+
+/* BULB */
 .bulb{
-  font-size:40px;
+  font-size:42px;
   color:#374151;
+  transition:.4s;
 }
 .bulb.on{
-  color:#ffeb3b;
-  text-shadow:0 0 25px #ffeb3b;
+  color:var(--accent);
+  text-shadow:0 0 25px var(--accent);
+  animation:glow 1.5s infinite alternate;
 }
-button{
-  padding:10px 15px;
+@keyframes glow{
+  from{ text-shadow:0 0 12px var(--accent);}
+  to{ text-shadow:0 0 35px var(--accent);}
+}
+
+/* BUTTON */
+.toggleBtn{
+  background:#1e293b;
   border:none;
-  border-radius:10px;
-  background:#22c55e;
-  color:black;
+  color:white;
+  padding:10px 18px;
+  border-radius:12px;
   cursor:pointer;
+  transition:.3s;
 }
+.toggleBtn:hover{ background:#334155; }
+.toggleBtn:active{ transform:scale(.95); }
+
 .back{
   width:100%;
   background:#2563eb;
+  border:none;
   color:white;
+  padding:12px;
+  border-radius:12px;
+  margin-top:10px;
 }
 </style>
 </head>
@@ -74,12 +119,12 @@ button{
 <header>🏠 Smart Home</header>
 
 <div id="roomPage" class="rooms">
-  <div class="room" onclick="openRoom('Bedroom')">🛏 Bedroom</div>
-  <div class="room" onclick="openRoom('Bathroom')">🚿 Bathroom</div>
-  <div class="room" onclick="openRoom('Hall')">🛋 Hall</div>
-  <div class="room" onclick="openRoom('Dining')">🍽 Dining</div>
-  <div class="room" onclick="openRoom('Kitchen')">🍳 Kitchen</div>
-  <div class="room" onclick="openRoom('Parking')">🚗 Parking</div>
+  <div class="room" id="roomBedroom" onclick="openRoom('Bedroom')">🛏 Bedroom</div>
+  <div class="room" id="roomBathroom" onclick="openRoom('Bathroom')">🚿 Bathroom</div>
+  <div class="room" id="roomHall" onclick="openRoom('Hall')">🛋 Hall</div>
+  <div class="room" id="roomDining" onclick="openRoom('Dining')">🍽 Dining</div>
+  <div class="room" id="roomKitchen" onclick="openRoom('Kitchen')">🍳 Kitchen</div>
+  <div class="room" id="roomParking" onclick="openRoom('Parking')">🚗 Parking</div>
 </div>
 
 <div id="devicePage" class="devices" style="display:none;">
@@ -94,7 +139,7 @@ firebase.initializeApp({
   databaseURL:"https://esp32-home-automationz-default-rtdb.asia-southeast1.firebasedatabase.app/"
 });
 
-const db = firebase.database();
+const db=firebase.database();
 
 const roomLEDs={
   Bedroom:[1,2],
@@ -114,29 +159,44 @@ function openRoom(room){
   roomLEDs[room].forEach(led=>{
     const card=document.createElement("div");
     card.className="card";
-
     card.innerHTML=`
       <div>
         <div>Light ${led}</div>
         <div class="bulb" id="bulb${led}">💡</div>
       </div>
-      <button onclick="toggleLed(${led})">Toggle</button>
+      <button class="toggleBtn" onclick="toggleLed(${led})">Toggle</button>
     `;
-
     deviceList.appendChild(card);
 
-    // SINGLE listener per LED (SAFE)
     db.ref("led"+led).on("value",snap=>{
-      document.getElementById("bulb"+led)
-        .classList.toggle("on",snap.val()==1);
+      const on=snap.val()==1;
+      document.getElementById("bulb"+led).classList.toggle("on",on);
+      updateRoomGlow();
     });
   });
 }
 
 function toggleLed(led){
   db.ref("led"+led).once("value").then(snap=>{
-    const newState = snap.val()==1 ? 0 : 1;
-    db.ref().update({ ["led"+led]: newState });
+    const newState = snap.val()==1?0:1;
+    db.ref().update({["led"+led]:newState});
+  });
+}
+
+function updateRoomGlow(){
+  Object.keys(roomLEDs).forEach(room=>{
+    let active=false;
+    roomLEDs[room].forEach(led=>{
+      db.ref("led"+led).once("value",s=>{
+        if(s.val()==1){
+          active=true;
+          document.getElementById("room"+room).classList.add("on");
+        }
+      });
+    });
+    if(!active){
+      document.getElementById("room"+room).classList.remove("on");
+    }
   });
 }
 
