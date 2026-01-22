@@ -12,7 +12,7 @@
 :root{
   --bg:#0f172a;
   --card:#020617;
-  --accent:#ffeb3b;
+  --glow:#ffeb3b;
 }
 body{
   margin:0;
@@ -27,37 +27,75 @@ header{
   font-size:22px;
 }
 
-/* ROOMS */
+/* ===== ROOMS DASHBOARD ===== */
 .rooms{
   display:grid;
   grid-template-columns:repeat(2,1fr);
-  gap:15px;
+  gap:16px;
   padding:20px;
 }
 .room{
   position:relative;
   background:var(--card);
-  padding:35px;
+  padding:30px;
   border-radius:22px;
   text-align:center;
   cursor:pointer;
-  transition:.4s;
   overflow:hidden;
+  transition:.4s;
 }
-.room:hover{ transform:scale(1.05); }
+.room:hover{transform:scale(1.05);}
 
+/* Window light */
 .room::after{
   content:"";
   position:absolute;
   inset:0;
-  background:radial-gradient(circle,rgba(255,235,59,.4),transparent 60%);
+  background:radial-gradient(circle at center,
+    rgba(255,235,59,.45),
+    transparent 60%);
   opacity:0;
   transition:.4s;
 }
-.room.on::after{ opacity:1; }
+.room.on::after{
+  opacity:1;
+  animation:roomGlow 2.5s infinite alternate;
+}
 
-/* DEVICE PAGE */
-.devices{ padding:20px; }
+/* Pulse ring */
+.room.on::before{
+  content:"";
+  position:absolute;
+  inset:-6px;
+  border-radius:24px;
+  border:2px solid rgba(255,235,59,.5);
+  animation:pulse 2s infinite;
+}
+
+@keyframes pulse{
+  from{opacity:.7; transform:scale(1);}
+  to{opacity:0; transform:scale(1.1);}
+}
+
+@keyframes roomGlow{
+  from{opacity:.6;}
+  to{opacity:1;}
+}
+
+/* Small bulb indicator */
+.room .miniBulb{
+  font-size:18px;
+  display:block;
+  margin-top:8px;
+  color:#374151;
+}
+.room.on .miniBulb{
+  color:var(--glow);
+  text-shadow:0 0 10px var(--glow);
+}
+
+/* ===== DEVICE PAGE ===== */
+.devices{padding:20px;}
 .card{
   background:var(--card);
   border-radius:22px;
@@ -66,41 +104,41 @@ header{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  animation:fadeIn .5s ease;
+  animation:fadeIn .4s ease;
 }
 @keyframes fadeIn{
   from{opacity:0; transform:translateY(10px);}
-  to{opacity:1; transform:none;}
+  to{opacity:1;}
 }
 
-/* BULB */
+/* Bulb */
 .bulb{
   font-size:42px;
   color:#374151;
   transition:.4s;
 }
 .bulb.on{
-  color:var(--accent);
-  text-shadow:0 0 25px var(--accent);
+  color:var(--glow);
+  text-shadow:0 0 25px var(--glow);
   animation:glow 1.5s infinite alternate;
 }
 @keyframes glow{
-  from{ text-shadow:0 0 12px var(--accent);}
-  to{ text-shadow:0 0 35px var(--accent);}
+  from{text-shadow:0 0 12px var(--glow);}
+  to{text-shadow:0 0 35px var(--glow);}
 }
 
-/* BUTTON */
+/* Buttons */
 .toggleBtn{
   background:#1e293b;
   border:none;
   color:white;
   padding:10px 18px;
-  border-radius:12px;
+  border-radius:14px;
   cursor:pointer;
   transition:.3s;
 }
-.toggleBtn:hover{ background:#334155; }
-.toggleBtn:active{ transform:scale(.95); }
+.toggleBtn:hover{background:#334155;}
+.toggleBtn:active{transform:scale(.95);}
 
 .back{
   width:100%;
@@ -109,7 +147,6 @@ header{
   color:white;
   padding:12px;
   border-radius:12px;
-  margin-top:10px;
 }
 </style>
 </head>
@@ -118,15 +155,35 @@ header{
 
 <header>🏠 Smart Home</header>
 
+<!-- DASHBOARD -->
 <div id="roomPage" class="rooms">
-  <div class="room" id="roomBedroom" onclick="openRoom('Bedroom')">🛏 Bedroom</div>
-  <div class="room" id="roomBathroom" onclick="openRoom('Bathroom')">🚿 Bathroom</div>
-  <div class="room" id="roomHall" onclick="openRoom('Hall')">🛋 Hall</div>
-  <div class="room" id="roomDining" onclick="openRoom('Dining')">🍽 Dining</div>
-  <div class="room" id="roomKitchen" onclick="openRoom('Kitchen')">🍳 Kitchen</div>
-  <div class="room" id="roomParking" onclick="openRoom('Parking')">🚗 Parking</div>
+  <div class="room" id="roomBedroom" onclick="openRoom('Bedroom')">
+    🛏 Bedroom
+    <span class="miniBulb">💡</span>
+  </div>
+  <div class="room" id="roomBathroom" onclick="openRoom('Bathroom')">
+    🚿 Bathroom
+    <span class="miniBulb">💡</span>
+  </div>
+  <div class="room" id="roomHall" onclick="openRoom('Hall')">
+    🛋 Hall
+    <span class="miniBulb">💡</span>
+  </div>
+  <div class="room" id="roomDining" onclick="openRoom('Dining')">
+    🍽 Dining
+    <span class="miniBulb">💡</span>
+  </div>
+  <div class="room" id="roomKitchen" onclick="openRoom('Kitchen')">
+    🍳 Kitchen
+    <span class="miniBulb">💡</span>
+  </div>
+  <div class="room" id="roomParking" onclick="openRoom('Parking')">
+    🚗 Parking
+    <span class="miniBulb">💡</span>
+  </div>
 </div>
 
+<!-- DEVICES -->
 <div id="devicePage" class="devices" style="display:none;">
   <h2 id="roomTitle"></h2>
   <div id="deviceList"></div>
@@ -138,7 +195,6 @@ firebase.initializeApp({
   apiKey:"AIzaSyD6rNf_NzDgBvmdCWfmyXAnlfLsHeM3whA",
   databaseURL:"https://esp32-home-automationz-default-rtdb.asia-southeast1.firebasedatabase.app/"
 });
-
 const db=firebase.database();
 
 const roomLEDs={
@@ -150,6 +206,35 @@ const roomLEDs={
   Parking:[7]
 };
 
+/* DASHBOARD LIVE STATUS */
+Object.keys(roomLEDs).forEach(room=>{
+  roomLEDs[room].forEach(led=>{
+    db.ref("led"+led).on("value",snap=>{
+      if(snap.val()==1){
+        document.getElementById("room"+room).classList.add("on");
+      }else{
+        checkRoom(room);
+      }
+    });
+  });
+});
+
+function checkRoom(room){
+  let any=false;
+  roomLEDs[room].forEach(led=>{
+    db.ref("led"+led).once("value",s=>{
+      if(s.val()==1){
+        any=true;
+        document.getElementById("room"+room).classList.add("on");
+      }
+    });
+  });
+  if(!any){
+    document.getElementById("room"+room).classList.remove("on");
+  }
+}
+
+/* OPEN ROOM */
 function openRoom(room){
   roomPage.style.display="none";
   devicePage.style.display="block";
@@ -169,34 +254,15 @@ function openRoom(room){
     deviceList.appendChild(card);
 
     db.ref("led"+led).on("value",snap=>{
-      const on=snap.val()==1;
-      document.getElementById("bulb"+led).classList.toggle("on",on);
-      updateRoomGlow();
+      document.getElementById("bulb"+led)
+        .classList.toggle("on",snap.val()==1);
     });
   });
 }
 
 function toggleLed(led){
   db.ref("led"+led).once("value").then(snap=>{
-    const newState = snap.val()==1?0:1;
-    db.ref().update({["led"+led]:newState});
-  });
-}
-
-function updateRoomGlow(){
-  Object.keys(roomLEDs).forEach(room=>{
-    let active=false;
-    roomLEDs[room].forEach(led=>{
-      db.ref("led"+led).once("value",s=>{
-        if(s.val()==1){
-          active=true;
-          document.getElementById("room"+room).classList.add("on");
-        }
-      });
-    });
-    if(!active){
-      document.getElementById("room"+room).classList.remove("on");
-    }
+    db.ref().update({["led"+led]: snap.val()==1?0:1});
   });
 }
 
